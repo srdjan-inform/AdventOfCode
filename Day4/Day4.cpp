@@ -1,14 +1,14 @@
-// Day4.cpp : Defines the entry point for the console application.
-//
-
 #include "stdafx.h"
 #include <fstream>
+#include <vector>
 #include <string>
+#include <algorithm>
 #include <iostream>
 #include <sstream>
-#include <map>
+#include <set>
 
 using namespace std;
+
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -17,37 +17,29 @@ int _tmain(int argc, _TCHAR* argv[])
   string word;
   string line;
 
-  int totalPassphrase1 = 0;
-  int totalPassphrase2 = 0;
+  auto totalPassphrase1 = 0;
+  auto totalPassphrase2 = 0;
 
   if (myfile.is_open()) {
 
     while (getline(myfile, line))
     {
-      map<string, int> wordsMap;
-      map<string, int> sortedMap;
-
+      vector<string> words;
       istringstream iss(line);
-      int totalWords = 0;
-	  
-      while (iss >> word)
-      {
-        wordsMap[word]++;
-        std::sort(word.begin(), word.end());
-        sortedMap[word]++;
-        totalWords++;
-      }
-      
-      if (wordsMap.size() == totalWords)
+
+      copy(istream_iterator<string>(iss),
+        istream_iterator<string>(),
+        back_inserter(words));
+
+
+      if (std::set<std::string>(words.begin(), words.end()).size() == words.size())
       {
         totalPassphrase1++;
-      }
+        std::for_each(words.begin(), words.end(), [](std::string &x){std::sort(x.begin(), x.end()); });
 
-      if ((wordsMap.size() == sortedMap.size()) && (wordsMap.size() == totalWords))
-      {
-        totalPassphrase2++;
+        if (std::set<std::string>(words.begin(), words.end()).size() == words.size()) totalPassphrase2++;
+      
       }
-
     }
   }
   else {
@@ -59,6 +51,6 @@ int _tmain(int argc, _TCHAR* argv[])
   cout << "Number of valid passphrases from part2: " << totalPassphrase2 << endl;
 
 
-  return 0;
-}
 
+	return 0;
+}
