@@ -1,6 +1,3 @@
-// Day6.cpp : Defines the entry point for the console application.
-//
-
 #include "stdafx.h"
 #include <fstream>
 #include <vector>
@@ -20,18 +17,13 @@ int _tmain(int argc, _TCHAR* argv[])
 
   if (myfile.is_open()) {
 
-    //vector<vector<int>> seen;
-
     std::map<std::vector<int>, int> seen;
-
     vector<int> memory{ istream_iterator<int>(myfile), istream_iterator<int>() };
 
     const auto begin = std::chrono::high_resolution_clock::now();
     
     seen.emplace(memory, step_counter);
-
     bool solved = false;
-    
     while (!solved)
     {
       step_counter++;
