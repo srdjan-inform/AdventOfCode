@@ -5,155 +5,155 @@
 #include <iostream>
 #include <chrono>
 #include <iterator>
-#include <sstream>
 #include <functional>
 #include <algorithm>
+#include <regex>
 
 using namespace std;
+using std::regex;
 
 struct Program
 {
-  string name;
-  int weight;
+	std::string name;
+	int weight;
 
-  std::vector<std::string> children;
-  std::vector<int> weights;
-  
-  bool operator<(const Program &p) const
-  {
-    return name < p.name;
-  }
+	bool operator<(const Program &p) const
+	{
+		return name < p.name;
+	}
+
+	std::vector<std::string> children;
+	std::vector<int> weights;
 };
 
-Program parent(const std::string &child, const std::vector<Program> &stack)
+Program parent(const std::string &child, const std::vector<Program> &tower)
 {
-  for (auto &t : stack)
-  {
-    auto c = std::find(t.children.begin(), t.children.end(), child);
-    if (c != t.children.end())
-      return parent(t.name, stack);
-  }
-  for (auto &t : stack)
-  {
-    if (t.name == child)
-      return t;
-  }
+	for (auto &t : tower)
+	{
+		auto c = std::find(t.children.begin(), t.children.end(), child);
+		if (c != t.children.end())
+			return parent(t.name, tower);
+	}
+	for (auto &t : tower)
+	{
+		if (t.name == child)
+			return t;
+	}
 }
 
 int calc_cumulative_weight(Program &p, std::vector<Program> &stack)
 {
-  // Create a tree of weights (each node contains the sum of weights of it's children)
-  for (auto &c : p.children)
-  {
-    for (auto &t : stack)
-    {
-      if (t.name == c)
-      {
-        p.weights.push_back(calc_cumulative_weight(t, stack));
-        break;
-      }
-    }
-  }
-  
-  int result = 0;
-  if (!p.weights.empty())
-  {
-    // Let's say that first element has the nominal value
-    int balanced_weight(*p.weights.begin());
+	// Create a tree of weights (each node contains the sum of weights of it's children)
+	for (auto &c : p.children)
+	{
+		for (auto &t : stack)
+		{
+			if (t.name == c)
+			{
+				p.weights.push_back(calc_cumulative_weight(t, stack));
+				break;
+			}
+		}
+	}
+	
+	int result = 0;
+	if (!p.weights.empty())
+	{
+		// Let's say that first element has the nominal value
+		int balanced_weight(*p.weights.begin());
 
-    for (auto &w : p.weights)
-    {
-      if (balanced_weight != w)
-      {       
-        // This tree is unbalanced. Find which element is unbalanced
-        cout << "Program " << p.name << " is unbalanced" << endl;
+		for (auto &w : p.weights)
+		{
+			if (balanced_weight != w)
+			{       
+				// This tree is unbalanced. Find which element is unbalanced
+				cout << "Program " << p.name << " is unbalanced" << endl;
 
-        cout << "Its children are " << endl;
+				cout << "Its children are " << endl;
 
-        for (auto &c : p.children)
-        {
-          std::cout << c << "\n";        
-        }
+				for (auto &c : p.children)
+				{
+					std::cout << c << "\n";        
+				}
 
-        for (auto &ww : p.weights)
-        {
-          std::cout << ww << "\n";
-        }        
+				for (auto &ww : p.weights)
+				{
+					std::cout << ww << "\n";
+				}        
 
-        cout << endl;
-      }
-      result += w;
-    }
-  }
+				cout << endl;
+			}
+			result += w;
+		}
+	}
 
-  result += p.weight;
-  return result;
+	result += p.weight;
+	return result;
 }
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-  ifstream myfile("Input.txt");
+	ifstream myfile("Input.txt");
 
-  string line;
-  std::vector<Program> stack;
+	string line;
+	std::vector<Program> stack;
 
-  if (myfile.is_open()) {
-    while (getline(myfile, line))
-    {
-      if (!line.empty())
-      {
-        vector<string> words;
-        istringstream iss(line);
+	
 
-        Program prog;
-        char c;
-        iss >> prog.name;
-        iss >> c;
-        iss >> prog.weight;
+	if (myfile.is_open()) {
+		
+		const regex base_regex("([a-z]+) \\((\\d+)\\)( -> ([a-z, ]+))?");
+		const regex children_regex("(, )");
 
-        const auto crtka(line.find('-'));
-        if (crtka != std::string::npos)
-        {
-          const auto elements(line.substr(crtka + 2));
+		smatch pieces_match;
 
-          istringstream elementsStream(elements);
-          while (elementsStream.good())
-          {
-            string substr;
-            getline(elementsStream, substr, ',');
-            // Fuck C++
-            substr.erase(substr.begin(), std::find_if(substr.begin(), substr.end(), std::bind1st(std::not_equal_to<char>(), ' '))); 
-            prog.children.push_back(substr); 
-          }
-        }
+		while (getline(myfile, line))
+		{
+			if (!line.empty())
+			{           
+				if (regex_match(line, pieces_match, base_regex)) {
+					// The first sub_match is the whole string; the next
+					// sub_match is the first parenthesized expression.
+					Program prog;
+					
+					prog.name = pieces_match[1];
+					prog.weight = stoi(pieces_match[2]);
 
-        stack.push_back(prog);
-      }
-    }
-  }
-  else {
-    cout << "cannot open file " << endl;
-    return 0;
-  }
+					if (pieces_match[3].matched)
+					{           
+						string list = pieces_match[4];
 
-  const auto begin = std::chrono::high_resolution_clock::now();
-  auto find_parent(parent(stack.begin()->name, stack));
+						copy(std::sregex_token_iterator(list.begin(), list.end(), children_regex, -1),
+							std::sregex_token_iterator(),
+							back_inserter(prog.children));
+					}
+					stack.push_back(prog);
+				}
+			}
+		}
+	}
+	else {
+		cout << "cannot open file " << endl;
+		return 0;
+	}
 
-  const auto end = std::chrono::high_resolution_clock::now();
-  std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << " ns for part one" << std::endl;
+	const auto begin = std::chrono::high_resolution_clock::now();
+	auto find_parent(parent(stack.begin()->name, stack));
 
-  std::cout << "Parent program is: " << find_parent.name << "\n";
+	const auto end = std::chrono::high_resolution_clock::now();
+	std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << " ns for part one" << std::endl;
 
-  calc_cumulative_weight(find_parent, stack);
+	std::cout << "Parent program is: " << find_parent.name << "\n";
 
-  const auto end2 = std::chrono::high_resolution_clock::now();
-  std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - begin).count() << " ns for part two" << std::endl;
+	calc_cumulative_weight(find_parent, stack);
 
-  cout << endl;
+	const auto end2 = std::chrono::high_resolution_clock::now();
+	std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - begin).count() << " ns for part two" << std::endl;
 
-  cin.ignore();
+	cout << endl;
+
+	cin.ignore();
 
 
-  return 0;
+	return 0;
 }
-
